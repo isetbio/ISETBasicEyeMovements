@@ -1,0 +1,3 @@
+
+%% Define project
+toolboxName = 'ISETBasicEyeMovements';
