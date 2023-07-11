@@ -18,6 +18,12 @@ scene1 = generateGaborSceneCustomize(...
     'presentationDisplay', presentationDisplay, ...
     'minimumPixelsPerHalfPeriod', 10);
 
+stimParams.center = [0 20];
+scene1_2Frames = generateGaborSceneCustomize(...
+    'stimParams', stimParams,...
+    'presentationDisplay', presentationDisplay, ...
+    'minimumPixelsPerHalfPeriod', 10);
+
 % Stimulus 2: NULL
 stimParams.contrast = 0;
 scene2 = generateGaborSceneCustomize(...
@@ -25,7 +31,7 @@ scene2 = generateGaborSceneCustomize(...
     'presentationDisplay', presentationDisplay, ...
     'minimumPixelsPerHalfPeriod', 10);
     % visualizeScene(scene1, ...
-    %     'displayRadianceMaps', false);
+    %     'displayRadianceMaps', false);.
     % visualizeScene(scene2, ...
     %     'displayRadianceMaps', false);
 
@@ -33,6 +39,7 @@ scene2 = generateGaborSceneCustomize(...
 theOI = oiCreate('wvf human');
 OI_1 = oiCompute(theOI, scene1);
 OI_2 = oiCompute(theOI, scene2);
+OI_1_2Frames = oiCompute(theOI, scene1_2Frames);
     % visualizeOpticalImage(OI_1, ...
     %     'displayRadianceMaps', false);
     % visualizeOpticalImage(OI_2, ...
@@ -67,10 +74,12 @@ for f = 1:nFrames
 end
 % Testing Sequence (3 background - 2 test - 3 background)
 for f = 1:nFrames
-    if f == 1 || f == 2 || f == 3 || f == 6 || f == 7 || f == 8
-        [noiseFreeExcitationTest_temp,noisyExcitationTest_temp,~,~,~] = theMosaic.compute(OI_2, 'nTrials', nTrialsNum, 'withFixationalEyeMovements', false);
-    elseif f == 4 || f == 5
+    if f == 4
         [noiseFreeExcitationTest_temp,noisyExcitationTest_temp,~,~,~] = theMosaic.compute(OI_1, 'nTrials', nTrialsNum, 'withFixationalEyeMovements', false);
+    elseif f == 5
+        [noiseFreeExcitationTest_temp,noisyExcitationTest_temp,~,~,~] = theMosaic.compute(OI_1_2Frames, 'nTrials', nTrialsNum, 'withFixationalEyeMovements', false);
+    else
+        [noiseFreeExcitationTest_temp,noisyExcitationTest_temp,~,~,~] = theMosaic.compute(OI_2, 'nTrials', nTrialsNum, 'withFixationalEyeMovements', false);
     end
 %    [noiseFreeExcitationTest_temp,noisyExcitationTest_temp,~,~,~] = theMosaic.compute(OI_1, 'nTrials', nTrialsNum, 'withFixationalEyeMovements', false);
     for i = 1:nTimebin
@@ -79,15 +88,6 @@ for f = 1:nFrames
         noisyExcitationTest_same(:,count,:) = noisyExcitationTest_temp;
     end
 end
-
-% noiseFreeExcitationNull_same = [zeros(1,1,3822), noiseFreeExcitationNull_same];
-% noiseFreeExcitationTest_same = [zeros(1,1,3822), noiseFreeExcitationTest_same];
-% noisyExcitationNull_same = [zeros(nTrialsNum,1,3822), noisyExcitationNull_same];
-% noisyExcitationTest_same = [zeros(nTrialsNum,1,3822), noisyExcitationTest_same];
-% timeAxis8frames = [0, timeAxis8frames];
-
-% visualizeConeResponse(noiseFreeExcitationTest_same, noisyExcitationTest_same, timeAxis8frames, 'excitation');
-% visualizeConeResponse(noiseFreeExcitationNull_same, noisyExcitationNull_same, timeAxis8frames, 'excitation');
 
 %% Photocurrent
 noiseFreePhotocurrTest_same = computePhotocurrent(noiseFreeExcitationTest_same, timeAxis8frames, 'none');
@@ -107,7 +107,7 @@ noisyPhotocurrNull_same = computePhotocurrent(noisyExcitationNull_same, timeAxis
 % Try All
 visualizeAllResponse(noiseFreeExcitationTest_same, noisyExcitationTest_same,noiseFreePhotocurrTest_same, noisyPhotocurrTest_same, timeAxis8frames, 1713, 'Test Stimulus');
 
-
+visualizeAllResponse(noiseFreeExcitationNull_same, noisyExcitationNull_same,noiseFreePhotocurrNull_same, noisyPhotocurrNull_same, timeAxis8frames, 1713, 'Null Stimulus');
 
 %% Compute Cone Excitation
 nTrialsNum = 20;
@@ -198,7 +198,7 @@ hold off
 
 % theMosaic.visualize('activation',noiseFreeExcitationInstanceStimulus_c1_f1,'plotTitle','Test Stimulus','verticalActivationColorBar', true);
 % theMosaic.visualize('activation',noiseFreeExcitationInstanceNull_c1_f1,'plotTitle','Null Stimulus','verticalActivationColorBar', true);
-%% Compute Photocurrent Try
+% Compute Photocurrent Try
 keptDuration = 50/1000;
 noiseFreePhotocurrStimulus_c1_f1 = computePhotocurrent(noiseFreeExcitationStimulus_c1_f1, timeAxis, 'none', keptDuration);
 noiseFreePhotocurrStimulus_c1_f2 = computePhotocurrent(noiseFreeExcitationStimulus_c1_f2, timeAxis, 'none', keptDuration);
@@ -253,11 +253,10 @@ hold on;
 plot(x, box_free, '.r', 'markersize', 20);
 ylabel('Photocurrent (pAmps)', 'fontsize', 12)
 hold off
-%% Visualizing Photocurrent
-visualizeConeExcitation(noiseFreePhotocurrStimulus_c1_f1, noisyPhotocurrStimulus_c1_f1, [0.01 0.02 0.03 0.04]);
 
 %% Supporting Function
 function [meanNoiseFree, meanNoisy, targetCone] = visualizeConeResponse(noiseFreeExcitationResponse, noisyExcitationResponse, timeAxis,responseType)
+    figure()
     [~,idx] = max(noiseFreeExcitationResponse(:));
     [~,~,targetConeID] = ind2sub(size(noiseFreeExcitationResponse), idx);
     % Plot the time series response for individual instances
@@ -280,6 +279,7 @@ function [meanNoiseFree, meanNoisy, targetCone] = visualizeConeResponse(noiseFre
 end
 
 function [meanNoiseFree, meanNoisy] = visualizeSingleConeResponse(noiseFreeExcitationResponse, noisyExcitationResponse, timeAxis, targetConeID, responseType)
+    figure()
     % Plot the time series response for individual instances
     plot(timeAxis, squeeze(noisyExcitationResponse(:,:,targetConeID)), '.', 'color', [.5 .5 .5]);
     hold on;
@@ -300,16 +300,17 @@ function [meanNoiseFree, meanNoisy] = visualizeSingleConeResponse(noiseFreeExcit
 end
 
 function [meanNoiseFree, meanNoisy] = visualizeAllResponse(noiseFreeExcitationResponse, noisyExcitationResponse, noiseFreePhotocurrResponse, noisyPhotocurrResponse, timeAxis, targetConeID, title_str)
-    plot(timeAxis, squeeze(noisyExcitationResponse(:,:,targetConeID)), 'c-');
+    figure()
+    plot(timeAxis, squeeze(noisyExcitationResponse(:,:,targetConeID)), 'c-', 'DisplayName','');
     hold on;
-    plot(timeAxis, squeeze(noisyPhotocurrResponse(:,:,targetConeID)), 'm-');
-    plot(timeAxis, squeeze(mean(noisyExcitationResponse(:,:,targetConeID),1)), 'b-', 'LineWidth', 2.5, 'DisplayName','cos(3x)');
-    plot(timeAxis, squeeze(mean(noisyPhotocurrResponse(:,:,targetConeID),1)), 'r-', 'LineWidth', 2.5);
+    plot(timeAxis, squeeze(noisyPhotocurrResponse(:,:,targetConeID)), 'm-', 'DisplayName','');
+    plot(timeAxis, squeeze(mean(noisyExcitationResponse(:,:,targetConeID),1)), 'b-', 'LineWidth', 2.5, 'DisplayName','Excitation (R*/cone/tau)');
+    plot(timeAxis, squeeze(mean(noisyPhotocurrResponse(:,:,targetConeID),1)), 'r-', 'LineWidth', 2.5, 'DisplayName','Photocurrent (pAmps)');
     % plot(timeAxis, squeeze(mean(noiseFreeExcitationResponse(:,:,targetConeID),1)), 'r', 'LineWidth', 1.5);
     xlabel('time (seconds)');
     ylabel('Cone Response');
+    ylim([-100 1200])
     set(gca, 'FontSize', 16);
-    legend('','Excitation (R*/cone/tau)','', 'Photocurrent (pAmps)')
     title(title_str)
     meanNoiseFree = mean(noiseFreeExcitationResponse(:,:,targetConeID));
     meanNoisy = mean(noisyExcitationResponse(:,:,targetConeID));

@@ -1,13 +1,20 @@
 accuracy_FEM = [];
 accuracy_noFEM = [];
-for l = 0:1:12
+std_noFEM = [];
+kFold = 10;
+nmin = 0;
+nstep = 0.5;
+nmax = 15;
+noisyAccuracy_noFEM = zeros(kFold, ((nmax-nmin)/nstep));
+count = 1;
+for l = nmin:nstep:nmax
     % Stimulus 1 
     stimParams = struct(...
         'spatialFrequencyCyclesPerDeg', 10, ... 
         'orientationDegs', 90, ...             
-        'phaseDegs', 180, ...                    
+        'phaseDegs', 0, ...                    
         'sizeDegs', 0.5, ...                    
-        'sigmaDegs', 0.2/3, ...                 
+        'sigmaDegs', 0.25/3, ...                 
         'contrast', l/100,...                  
         'meanLuminanceCdPerM2', 15, ...         
         'pixelsAlongWidthDim', [], ...          
@@ -41,51 +48,51 @@ for l = 0:1:12
     % Generate a hexagonal cone mosaic with ecc-based cone quantal efficiency
     theMosaic = cMosaic('sizeDegs', [1, 1] * stimParams.sizeDegs, ... 
                 'integrationTime', integrationTime / 1000); % 10 msec integration time
-    % with eye movement
-    duration = 500 / 1000;
-    nTrials = (duration*1000) / integrationTime;
-    nTrialsNum = 50;
-    noisyExcitationResponseInstances1 = zeros(nTrialsNum, nTrials, 3822);
-    noisyExcitationResponseInstances2 = zeros(nTrialsNum, nTrials, 3822);
-    for i = 1:nTrialsNum
-        theMosaic.emGenSequence(duration, 'nTrials', nTrials, 'centerPaths', true,'microsaccadeType', 'none');
-        [~,noisyExcitationResponseInstances_11, ~,~,~] = theMosaic.compute(OI_1, 'nTrials', 1, 'withFixationalEyeMovements', true);
-        noisyExcitationResponseInstances1(i,:,:) = noisyExcitationResponseInstances_11;
-        [~,noisyExcitationResponseInstances_22, ~,~,~] = theMosaic.compute(OI_2, 'nTrials', 1, 'withFixationalEyeMovements', true);
-        noisyExcitationResponseInstances2(i,:,:) = noisyExcitationResponseInstances_22;
-    end
+%     % with eye movement
+%     duration = 500 / 1000;
+%     nTrials = (duration*1000) / integrationTime;
+%     nTrialsNum = 50;
+%     noisyExcitationResponseInstances1 = zeros(nTrialsNum, nTrials, 3822);
+%     noisyExcitationResponseInstances2 = zeros(nTrialsNum, nTrials, 3822);
+%     for i = 1:nTrialsNum
+%         theMosaic.emGenSequence(duration, 'nTrials', nTrials, 'centerPaths', true,'microsaccadeType', 'none');
+%         [~,noisyExcitationResponseInstances_11, ~,~,~] = theMosaic.compute(OI_1, 'nTrials', 1, 'withFixationalEyeMovements', true);
+%         noisyExcitationResponseInstances1(i,:,:) = noisyExcitationResponseInstances_11;
+%         [~,noisyExcitationResponseInstances_22, ~,~,~] = theMosaic.compute(OI_2, 'nTrials', 1, 'withFixationalEyeMovements', true);
+%         noisyExcitationResponseInstances2(i,:,:) = noisyExcitationResponseInstances_22;
+%     end
 
     % without eye movement
     [noiseFreeExcitationResponseInstances1_noFEM,noisyExcitationResponseInstances1_noFEM, ~,~,~] = theMosaic.compute(OI_1, 'nTrials', nTrialsNum, 'withFixationalEyeMovements', false);
     [noiseFreeExcitationResponseInstances2_noFEM,noisyExcitationResponseInstances2_noFEM, ~,~,~] = theMosaic.compute(OI_2, 'nTrials', nTrialsNum, 'withFixationalEyeMovements', false);
 
-    % Simulate a 2AFC task 
-    taskIntervals = 2;
-    [classificationMatrix, classLabels] = generateSetUpForClassifier(...
-        noisyExcitationResponseInstances1, noisyExcitationResponseInstances2, taskIntervals);
-
-    % Find principal components of the responses
-    [pcVectors, ~, ~, ~,varianceExplained] = pca(classificationMatrix);
-
-    % Project the responses onto the space formed by the first 4 PC vectors
-    pcComponentsNumForClassification = 2;
-    classificationMatrixProjection = classificationMatrix * pcVectors(:,1:pcComponentsNumForClassification);
-
-    % Visualize the classification matrix and its projection to the PC space
-    % visualizeClassificationMatrices(classificationMatrix, classificationMatrixProjection, taskIntervals)
-    svm = fitcsvm(classificationMatrixProjection,classLabels);
-    % Measure performance of the SVM classifier using a 10-fold crossvalidation
-    % approach
-    % Perform a 10-fold cross-validation on the trained SVM model
-    kFold = 10;
-    CVSVM = crossval(svm,'KFold',kFold);
-
-    % Compute classification loss for the in-sample responses using a model 
-    % trained on out-of-sample responses
-    fractionCorrect = 1 - kfoldLoss(CVSVM,'lossfun','classiferror','mode','individual');
-    % Average percent correct across all folds 
-    percentCorrect_FEM = mean(fractionCorrect)*100;
-    accuracy_FEM(end+1) = percentCorrect_FEM;
+%     % Simulate a 2AFC task 
+%     taskIntervals = 2;
+%     [classificationMatrix, classLabels] = generateSetUpForClassifier(...
+%         noisyExcitationResponseInstances1, noisyExcitationResponseInstances2, taskIntervals);
+% 
+%     % Find principal components of the responses
+%     [pcVectors, ~, ~, ~,varianceExplained] = pca(classificationMatrix);
+% 
+%     % Project the responses onto the space formed by the first 4 PC vectors
+%     pcComponentsNumForClassification = 2;
+%     classificationMatrixProjection = classificationMatrix * pcVectors(:,1:pcComponentsNumForClassification);
+% 
+%     % Visualize the classification matrix and its projection to the PC space
+%     % visualizeClassificationMatrices(classificationMatrix, classificationMatrixProjection, taskIntervals)
+%     svm = fitcsvm(classificationMatrixProjection,classLabels);
+%     % Measure performance of the SVM classifier using a 10-fold crossvalidation
+%     % approach
+%     % Perform a 10-fold cross-validation on the trained SVM model
+%     kFold = 10;
+%     CVSVM = crossval(svm,'KFold',kFold);
+% 
+%     % Compute classification loss for the in-sample responses using a model 
+%     % trained on out-of-sample responses
+%     fractionCorrect = 1 - kfoldLoss(CVSVM,'lossfun','classiferror','mode','individual');
+%     % Average percent correct across all folds 
+%     percentCorrect_FEM = mean(fractionCorrect)*100;
+%     accuracy_FEM(end+1) = percentCorrect_FEM;
 
     % Simulate a 2AFC task 
     taskIntervals = 2;
@@ -108,7 +115,6 @@ for l = 0:1:12
     % visualizeSVMmodel(svm, classificationMatrixProjection, classLabels);
     % Measure performance of the SVM classifier using a 10-fold crossvalidation approach
     % Perform a 10-fold cross-validation on the trained SVM model
-    kFold = 10;
     CVSVM = crossval(svm,'KFold',kFold);
 
     % Compute classification loss for the in-sample responses using a model 
@@ -117,28 +123,41 @@ for l = 0:1:12
     % Average percent correct across all folds 
     percentCorrect_noFEM = mean(fractionCorrect)*100;
     accuracy_noFEM(end+1) = percentCorrect_noFEM;
+    noisyAccuracy_noFEM(:,count) = fractionCorrect*100;
+    std_noFEM(end+1) = std(noisyAccuracy_noFEM(:,count));
+    count = count +1;
 end
 %% figure
 figure
-x = [0:1:12];
+x = [nmin:nstep:nmax];
 y1 = accuracy_noFEM;
-y2 = accuracy_FEM;
-y1_up = y1 + std(y1);
-y1_down = y1 - std(y1);
+% y2 = accuracy_FEM;
+y1_up = y1 + std_noFEM;
+y1_down = y1 - std_noFEM;
+% errorbar(x,y1,std_noFEM, '-ob', 'LineWidth', 2)
 patch([x fliplr(x)], [y1_up  fliplr(y1_down)], 'r','FaceAlpha',0.2, 'EdgeColor','none'); 
 hold on;
 plot(x, y1, '-or','LineWidth', 2);
-y2_up = y2 + std(y2);
-y2_down = y2 - std(y2);
-ylim([0 100])
-patch([x fliplr(x)], [y2_up  fliplr(y2_down)], 'b','FaceAlpha',0.2, 'EdgeColor','none'); 
-plot(x, y2, '-ob', 'LineWidth', 2);
+% y2_up = y2 + std(y2);
+% y2_down = y2 - std(y2);
+% ylim([0 100])
+% patch([x fliplr(x)], [y2_up  fliplr(y2_down)], 'b','FaceAlpha',0.2, 'EdgeColor','none'); 
+% plot(x, y2, '-ob', 'LineWidth', 2);
 title('Changing in SVM Acuracy (luminance = 15)','fontsize', 15)
+xticks(nmin:1:nmax);
+ylim([0 100])
+yticks(0:10:100);
 xlabel('Stimulus Contrast (%)')
 ylabel('Accuracy (%)')
-legend('','no eye movement','','with eye movement')
+% legend('','no eye movement','','with eye movement')
 hold off
 
+
+% boxplot(noisyAccuracy_noFEM)
+% title('Changing in SVM Acuracy (luminance = 15)','fontsize', 15)
+% xlabel('Stimulus Contrast (%)')
+% ylabel('Accuracy (%)')
+% legend('','no eye movement','','with eye movement')
 %% Supporting function
 function [classificationMatrix, classLabels] = generateSetUpForClassifier(coneExcitationsTest, coneExcitationsNull, taskIntervals)
     nTrials = size(coneExcitationsTest, 1);
