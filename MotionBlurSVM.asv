@@ -6,8 +6,8 @@ stimParams = struct(...
     'orientationDegs', 90, ...               
     'phaseDegs', 0, ...                    
     'sizeDegs', 0.5, ...                    
-    'sigmaDegs', 0.25/3, ...                 
-    'contrast', 100/100,...                  
+    'sigmaDegs', 3/3, ...                 
+    'contrast', 6.5/100,...                  
     'meanLuminanceCdPerM2', 20, ...
     'center', [0 0], ...
     'pixelsAlongWidthDim', [], ...          
@@ -18,7 +18,7 @@ scene1 = generateGaborSceneCustomize(...
     'presentationDisplay', presentationDisplay, ...
     'minimumPixelsPerHalfPeriod', 10);
 
-stimParams.center = [0 20];
+stimParams.center = [0 0];
 scene1_2Frames = generateGaborSceneCustomize(...
     'stimParams', stimParams,...
     'presentationDisplay', presentationDisplay, ...
@@ -101,13 +101,52 @@ noisyPhotocurrNull_same = computePhotocurrent(noisyExcitationNull_same, timeAxis
 % visualizeConeResponse(noiseFreeExcitationNull_same, noisyExcitationNull_same, timeAxis8frames, 'excitation');
 % visualizeSingleConeResponse(noiseFreeExcitationTest_same, noisyExcitationTest_same, timeAxis8frames, 1713, 'excitation');
 % visualizeSingleConeResponse(noiseFreeExcitationNull_same, noisyExcitationNull_same, timeAxis8frames, 1713, 'excitation');
-% Visualize Photocurrent
+% % Visualize Photocurrent
 % visualizeSingleConeResponse(noiseFreePhotocurrTest_same, noisyPhotocurrTest_same, timeAxis8frames, 1713, 'photocurrent');
 % visualizeSingleConeResponse(noiseFreePhotocurrNull_same, noisyPhotocurrNull_same, timeAxis8frames, 1713, 'photocurrent');
 % Try All
-visualizeAllResponse(noiseFreeExcitationTest_same, noisyExcitationTest_same,noiseFreePhotocurrTest_same, noisyPhotocurrTest_same, timeAxis8frames, 1713, 'Test Stimulus');
+visualizeAllResponse(noiseFreeExcitationTest_same, noisyExcitationTest_same,noiseFreePhotocurrTest_same, noisyPhotocurrTest_same, timeAxis8frames, 372, 'Test Stimulus');
 
-visualizeAllResponse(noiseFreeExcitationNull_same, noisyExcitationNull_same,noiseFreePhotocurrNull_same, noisyPhotocurrNull_same, timeAxis8frames, 1713, 'Null Stimulus');
+visualizeAllResponse(noiseFreeExcitationNull_same, noisyExcitationNull_same,noiseFreePhotocurrNull_same, noisyPhotocurrNull_same, timeAxis8frames, 372, 'Null Stimulus');
+
+avgFreeStimulus = mean(noiseFreeExcitationInstanceStimulus_c1_f1);
+avgFreeNull = mean(noiseFreeExcitationInstanceNull_c1_f1);
+
+avgStimulus = mean(noisyExcitationInstanceStimulus_c1_f1,"all");
+avgNull = mean(noisyExcitationInstanceNull_c1_f1,"all");
+
+%% SVM
+
+% Simulate a 2AFC task 
+taskIntervals = 2;
+[classificationMatrix, classLabels] = generateSetUpForClassifier_noEM(...
+    noisyExcitationResponseInstances1_noFEM, noisyExcitationResponseInstances2_noFEM, taskIntervals);
+
+% Find principal components of the responses
+[pcVectors, ~, ~, ~,varianceExplained] = pca(classificationMatrix);
+
+% Project the responses onto the space formed by the first 4 PC vectors
+pcComponentsNumForClassification = 2;
+classificationMatrixProjection = classificationMatrix * pcVectors(:,1:pcComponentsNumForClassification);
+
+% Visualize the classification matrix and its projection to the PC space
+visualizeClassificationMatrices(classificationMatrix, classificationMatrixProjection, taskIntervals)
+% Train a binary SVM classifier and visualize the support vectors in 2
+% dimensions
+svm = fitcsvm(classificationMatrixProjection,classLabels);
+
+% Visualize the data along with the hyperplane computed by the SVM 
+visualizeSVMmodel(svm, classificationMatrixProjection, classLabels);
+% Measure performance of the SVM classifier using a 10-fold crossvalidation approach
+% Perform a 10-fold cross-validation on the trained SVM model
+kFold = 10;
+CVSVM = crossval(svm,'KFold',kFold);
+
+% Compute classification loss for the in-sample responses using a model 
+% trained on out-of-sample responses
+fractionCorrect = 1 - kfoldLoss(CVSVM,'lossfun','classiferror','mode','individual');
+% Average percent correct across all folds 
+percentCorrect = mean(fractionCorrect)*100
 
 %% Compute Cone Excitation
 nTrialsNum = 20;
@@ -162,7 +201,7 @@ avgNull_c1_f1 = mean(noisyExcitationInstanceNull_c1_f1,"all");
 avgStimulus_c1_f2 = mean(noisyExcitationInstanceStimulus_c1_f2,"all");
 avgNull_c1_f2 = mean(noisyExcitationInstanceNull_c1_f2,"all");
 
-figure
+figure()
 x = [1 2];
 y1 = [avgFreeStimulus_c1_f1 avgFreeStimulus_c1_f2];
 y2 = [avgFreeNull_c1_f1 avgFreeNull_c1_f2];
@@ -199,60 +238,59 @@ hold off
 % theMosaic.visualize('activation',noiseFreeExcitationInstanceStimulus_c1_f1,'plotTitle','Test Stimulus','verticalActivationColorBar', true);
 % theMosaic.visualize('activation',noiseFreeExcitationInstanceNull_c1_f1,'plotTitle','Null Stimulus','verticalActivationColorBar', true);
 % Compute Photocurrent Try
-keptDuration = 50/1000;
-noiseFreePhotocurrStimulus_c1_f1 = computePhotocurrent(noiseFreeExcitationStimulus_c1_f1, timeAxis, 'none', keptDuration);
-noiseFreePhotocurrStimulus_c1_f2 = computePhotocurrent(noiseFreeExcitationStimulus_c1_f2, timeAxis, 'none', keptDuration);
-noiseFreePhotocurrNull_c1_f1 = computePhotocurrent(noiseFreeExcitationNull_c1_f1, timeAxis, 'none', keptDuration);
-noiseFreePhotocurrNull_c1_f2 = computePhotocurrent(noiseFreeExcitationNull_c1_f2, timeAxis, 'none', keptDuration);
-
-noisyPhotocurrStimulus_c1_f1 = computePhotocurrent(noisyExcitationStimulus_c1_f1, timeAxis, 'random', keptDuration);
-noisyPhotocurrStimulus_c1_f2 = computePhotocurrent(noisyExcitationStimulus_c1_f2, timeAxis, 'random', keptDuration);
-noisyPhotocurrNull_c1_f1 = computePhotocurrent(noisyExcitationNull_c1_f1, timeAxis, 'random', keptDuration);
-noisyPhotocurrNull_c1_f2 = computePhotocurrent(noisyExcitationNull_c1_f2, timeAxis, 'random', keptDuration);
-
-avgPhotocurrFreeStimulus_c1_f1 = mean(noiseFreePhotocurrStimulus_c1_f1,"all");
-avgPhotocurrFreeNull_c1_f1 = mean(noiseFreePhotocurrNull_c1_f1,"all");
-avgPhotocurrFreeStimulus_c1_f2 = mean(noiseFreePhotocurrStimulus_c1_f2,"all");
-avgPhotocurrFreeNull_c1_f2 = mean(noiseFreePhotocurrNull_c1_f2,"all");
-
-avgPhotocurrStimulus_c1_f1 = mean(noisyPhotocurrStimulus_c1_f1,"all");
-avgPhotocurrNull_c1_f1 = mean(noisyPhotocurrNull_c1_f1,"all");
-avgPhotocurrStimulus_c1_f2 = mean(noisyPhotocurrStimulus_c1_f2,"all");
-avgPhotocurrNull_c1_f2 = mean(noisyPhotocurrNull_c1_f2,"all");
-
-% figure
+% noiseFreePhotocurrStimulus_c1_f1 = computePhotocurrent(noiseFreeExcitationStimulus_c1_f1, timeAxis, 'none');
+% noiseFreePhotocurrStimulus_c1_f2 = computePhotocurrent(noiseFreeExcitationStimulus_c1_f2, timeAxis, 'none');
+% noiseFreePhotocurrNull_c1_f1 = computePhotocurrent(noiseFreeExcitationNull_c1_f1, timeAxis, 'none');
+% noiseFreePhotocurrNull_c1_f2 = computePhotocurrent(noiseFreeExcitationNull_c1_f2, timeAxis, 'none');
+% 
+% noisyPhotocurrStimulus_c1_f1 = computePhotocurrent(noisyExcitationStimulus_c1_f1, timeAxis, 'random');
+% noisyPhotocurrStimulus_c1_f2 = computePhotocurrent(noisyExcitationStimulus_c1_f2, timeAxis, 'random');
+% noisyPhotocurrNull_c1_f1 = computePhotocurrent(noisyExcitationNull_c1_f1, timeAxis, 'random');
+% noisyPhotocurrNull_c1_f2 = computePhotocurrent(noisyExcitationNull_c1_f2, timeAxis, 'random');
+% 
+% avgPhotocurrFreeStimulus_c1_f1 = mean(noiseFreePhotocurrStimulus_c1_f1,"all");
+% avgPhotocurrFreeNull_c1_f1 = mean(noiseFreePhotocurrNull_c1_f1,"all");
+% avgPhotocurrFreeStimulus_c1_f2 = mean(noiseFreePhotocurrStimulus_c1_f2,"all");
+% avgPhotocurrFreeNull_c1_f2 = mean(noiseFreePhotocurrNull_c1_f2,"all");
+% 
+% avgPhotocurrStimulus_c1_f1 = mean(noisyPhotocurrStimulus_c1_f1,"all");
+% avgPhotocurrNull_c1_f1 = mean(noisyPhotocurrNull_c1_f1,"all");
+% avgPhotocurrStimulus_c1_f2 = mean(noisyPhotocurrStimulus_c1_f2,"all");
+% avgPhotocurrNull_c1_f2 = mean(noisyPhotocurrNull_c1_f2,"all");
+% 
+% % figure
+% % x = [1 2];
+% % y1 = [avgPhotocurrFreeStimulus_c1_f1 avgPhotocurrFreeStimulus_c1_f2];
+% % y2 = [avgPhotocurrFreeNull_c1_f1 avgPhotocurrFreeNull_c1_f2];
+% % y3 = [avgPhotocurrStimulus_c1_f1 avgPhotocurrStimulus_c1_f2];
+% % y4 = [avgPhotocurrNull_c1_f1 avgPhotocurrNull_c1_f2];
+% % plot(x, y1, 'or');
+% % hold on;
+% % plot(x, y2, 'ob');
+% % plot(x, y3, 'or');
+% % plot(x, y4, 'ob');
+% % xlim([0.5 2.5])
+% % xticks([1 2])
+% % title('Photocurrent (no FEM)','fontsize', 15)
+% % xlabel('Frames')
+% % ylabel('Cone Excitation')
+% % legend('noise free stimulus','noise free null','noisy stimulus','noisy null')
+% % hold off
+% 
+% figure()
 % x = [1 2];
-% y1 = [avgPhotocurrFreeStimulus_c1_f1 avgPhotocurrFreeStimulus_c1_f2];
-% y2 = [avgPhotocurrFreeNull_c1_f1 avgPhotocurrFreeNull_c1_f2];
-% y3 = [avgPhotocurrStimulus_c1_f1 avgPhotocurrStimulus_c1_f2];
-% y4 = [avgPhotocurrNull_c1_f1 avgPhotocurrNull_c1_f2];
-% plot(x, y1, 'or');
+% box_stimulus = [avgPhotocurrFreeStimulus_c1_f1 avgPhotocurrFreeStimulus_c1_f2 avgPhotocurrStimulus_c1_f1 avgPhotocurrStimulus_c1_f2];
+% box_null = [avgPhotocurrFreeNull_c1_f1 avgPhotocurrFreeNull_c1_f2 avgPhotocurrNull_c1_f1 avgPhotocurrNull_c1_f2];
+% box_free = [avgPhotocurrFreeStimulus_c1_f1 avgPhotocurrFreeNull_c1_f1];
+% 
+% group = [ones(size(box_stimulus)) 2 * ones(size(box_null))];
+% h = boxplot([box_stimulus box_null], group, 'Color','b');
+% set(gca,'XTickLabel',{'Test','Null'},'linew',1)
+% set(h,'LineWidth',2);
 % hold on;
-% plot(x, y2, 'ob');
-% plot(x, y3, 'or');
-% plot(x, y4, 'ob');
-% xlim([0.5 2.5])
-% xticks([1 2])
-% title('Photocurrent (no FEM)','fontsize', 15)
-% xlabel('Frames')
-% ylabel('Cone Excitation')
-% legend('noise free stimulus','noise free null','noisy stimulus','noisy null')
+% plot(x, box_free, '.r', 'markersize', 20);
+% ylabel('Photocurrent (pAmps)', 'fontsize', 12)
 % hold off
-
-figure
-x = [1 2];
-box_stimulus = [avgPhotocurrFreeStimulus_c1_f1 avgPhotocurrFreeStimulus_c1_f2 avgPhotocurrStimulus_c1_f1 avgPhotocurrStimulus_c1_f2];
-box_null = [avgPhotocurrFreeNull_c1_f1 avgPhotocurrFreeNull_c1_f2 avgPhotocurrNull_c1_f1 avgPhotocurrNull_c1_f2];
-box_free = [avgPhotocurrFreeStimulus_c1_f1 avgPhotocurrFreeNull_c1_f1];
-
-group = [ones(size(box_stimulus)) 2 * ones(size(box_null))];
-h = boxplot([box_stimulus box_null], group, 'Color','b');
-set(gca,'XTickLabel',{'Test','Null'},'linew',1)
-set(h,'LineWidth',2);
-hold on;
-plot(x, box_free, '.r', 'markersize', 20);
-ylabel('Photocurrent (pAmps)', 'fontsize', 12)
-hold off
 
 %% Supporting Function
 function [meanNoiseFree, meanNoisy, targetCone] = visualizeConeResponse(noiseFreeExcitationResponse, noisyExcitationResponse, timeAxis,responseType)

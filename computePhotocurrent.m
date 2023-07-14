@@ -1,8 +1,13 @@
-function photocurrentResponses = computePhotocurrent(coneExcitationResponses, temporalSupportSeconds, noiseFlag)
+function photocurrentResponses = computePhotocurrent(coneExcitationResponses, temporalSupportSeconds, noiseFlag, cutoffFlag)
+    if notDefined('cutoffFlag'), cutoffFlag = 'false'; end
     % Compute photocurrent responses from the cone excitation responses
     photocurrentResponses = 0*coneExcitationResponses;
-
-    impulseResponse = computePhotocurrentImpulseResponse(temporalSupportSeconds);
+    switch cutoffFlag
+        case 'true'
+            impulseResponse = computePhotocurrentImpulseResponse(temporalSupportSeconds, 'true');
+        case 'false'
+            impulseResponse = computePhotocurrentImpulseResponse(temporalSupportSeconds, 'false');
+    end
     impulseResponse(1) = 0.0;
     dt = temporalSupportSeconds(2)-temporalSupportSeconds(1);
     
@@ -25,20 +30,22 @@ function photocurrentResponses = computePhotocurrent(coneExcitationResponses, te
 %             pause
         end
     end
-    % Keep the last specified msec of the photocurrent response
-%     dt = temporalSupportSeconds(2)-temporalSupportSeconds(1);
-%     idx = find(temporalSupportSeconds > temporalSupportSeconds(end) +dt - responseSecondsKept);
     fprintf('Computed photocurrent response over a time duration of %d msec\n', numel(temporalSupportSeconds)*dt*1000);
-%     fprintf('Keeping the last %d mseconds of the response to allow for pCurrent stabilization.\n',  responseSecondsKept*1000);
 %     photocurrentResponses = photocurrentResponses(:,idx,:);
 end
 
-function impulseResponse = computePhotocurrentImpulseResponse(timeAxis)
+function impulseResponse = computePhotocurrentImpulseResponse(timeAxis, cutoffFlag)
 
     % Temporary solution until we program photocurrent reponse computation
     % in @cMosaic
     load('/Users/qiyuanfeng/Documents/MATLAB/projects/ISETBasicEyeMovements/osLinearFilters25CDM2.mat', 'osLinearFilters', 'dt');
     t = (1:size(osLinearFilters,1))*dt;
     
-    impulseResponse = 2*interp1(t, squeeze(osLinearFilters(:,1)), timeAxis);
+    if notDefined('cutoffFlag'), cutoffFlag = 'false'; end
+    switch cutoffFlag
+        case 'true'
+            impulseResponse = 2*interp1(t, squeeze(osLinearFilters(:,1)), timeAxis);
+        case 'false'
+            impulseResponse = 2*interp1(t, squeeze(osLinearFilters(:,1)), t);
+    end
 end
