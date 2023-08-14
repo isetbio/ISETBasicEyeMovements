@@ -8,6 +8,7 @@ nmax = 15;
 noisyAccuracy_noFEM = zeros(kFold, ((nmax-nmin)/nstep));
 count = 1;
 nTrialsNum = 100;
+presentationDisplay = displayCreate('LCD-Apple', 'viewing distance', 0.50);
 for l = nmin:nstep:nmax
     % Stimulus 1 
     stimParams = struct(...
@@ -165,18 +166,29 @@ hold off
 % shape = paramfit(2);
 % plot(x,wblcdf(accuracy_noFEM,scale,shape),'DisplayName','A=10, B=2')
 
-plot(x,accuracy_noFEM,'o');
-hold on;
-% modelFun =  @(p,x) p(3) .* (x./p(1)).^(p(2)-1) .* exp(-(x./p(1)).^p(2));
-% startingVals = [10 2 5];
-% nlModel = fitnlm(x,accuracy_noFEM,modelFun,startingVals);
-% line(x,predict(nlModel,x),'Color','r');
-
 [curvefit, gof] = fit(x(:), accuracy_noFEM(:), 'a+b/(1+exp(-c*(x-d)))');
-% [curvefit, gof] = fit(x(:), accuracy_noFEM(:), 'c*a*b*x^(b-1)*exp(-a*x^b)', 'StartPoint', [0.01, 2, 5]);
+setThreshold = 75;
 sse = gof.sse;
-rsquare = gof.rsquare
-plot(curvefit)
+rsquare = gof.rsquare;
+find = @(x) setThreshold - curvefit(x);
+threshold = fzero(find, 0);
+
+fprintf('Detection Threshold is %.4f with a r-square of %.4f\n', threshold, rsquare);
+
+figure()
+plot(x,accuracy_noFEM,'.', 'MarkerSize', 12);
+hold on;
+bestfit = plot(curvefit);
+set(bestfit, 'LineWidth', 2.5, 'color', [0.4940 0.1840 0.5560])
+plot([0 threshold], [setThreshold setThreshold], '--','color', [0.5 0.5 0.5],'LineWidth', 2);
+plot([threshold threshold], [0 setThreshold], '--','color', [0.5 0.5 0.5],'LineWidth', 2);
+legend('original data','fitted curve')
+xlabel('Stimulus Contrast (%)','fontsize', 12)
+ylabel('Accuracy (%)','fontsize', 12)
+title({
+    ["Threshold = " + threshold + "%"]
+    ["SSE: " + sse + ", R-square: " + rsquare]
+    }, 'fontsize', 15);
 hold off;
 
 

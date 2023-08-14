@@ -1,4 +1,6 @@
-%% Try Function
+%% Create Stimulus & Response
+presentationDisplay = displayCreate('LCD-Apple', 'viewing distance', 0.50);
+% Stimulus 1 
 stimParams = struct(...
     'spatialFrequencyCyclesPerDeg', 10, ... 
     'orientationDegs', 90, ...               
@@ -7,31 +9,7 @@ stimParams = struct(...
     'sigmaDegs', 0.25/3, ...                 
     'contrast', 100/100,...                  
     'meanLuminanceCdPerM2', 15, ...
-    'center', [0 0], ...
-    'pixelsAlongWidthDim', [], ...          
-    'pixelsAlongHeightDim', [] ...          
-    );
-% null_responses = computeConeResponseforSVM(stimParams, 'null'); % don't need to reset the contrast
-% case 1: no change
-test_responses_1 = computeConeResponseforSVM(stimParams, 'test');
-%% try
-visualizeResponseOverTime(test_responses_1, 'excitation');
-% % case 2: shift down 1/2 cycle
-% test_responses_2 = computeConeResponseforSVM(stimParams, 'test', 'center', [0 10]);
-% % case 3: shift down 1 cycle
-% test_responses_3 = computeConeResponseforSVM(stimParams, 'test', 'center', [0 20]);
-%% Create Stimulus & Response
-presentationDisplay = displayCreate('LCD-Apple', 'viewing distance', 0.50);
-% Stimulus 1 
-stimParams = struct(...
-    'spatialFrequencyCyclesPerDeg', 10, ... 
-    'orientationDegs', 90, ...               
-    'phaseDegs', 0, ...                    
-    'sizeDegs', 0.5, ...                    
-    'sigmaDegs', 0.25/3, ...                 
-    'contrast', 100/100,...                  
-    'meanLuminanceCdPerM2', 15, ...
-    'center', [0 0], ...
+    'center', [0 10], ...
     'pixelsAlongWidthDim', [], ...          
     'pixelsAlongHeightDim', [] ...          
     );
@@ -111,6 +89,14 @@ for f = 1:nFrames
     end
 end
 
+%% Compare function
+% ResponsesTest = computeConeResponseforSVM(stimParams, theMosaic, 'test', 'contrast', 100, 'nTrials', 10, 'responseFlag', 'excitation');
+% ResponsesNull = computeConeResponseforSVM(stimParams, theMosaic, 'null', 'contrast', 0, 'nTrials', 10, 'responseFlag', 'excitation');
+noisyExcitationTest_same = ResponsesTest.noisyExcitation;
+noisyExcitationNull_same = ResponsesNull.noisyExcitation;
+noiseFreeExcitationTest_same = ResponsesTest.noiseFreeExcitation;
+noiseFreeExcitationNull_same = ResponsesNull.noiseFreeExcitation;
+
 %% Photocurrent
 noiseFreePhotocurrTest_same = computePhotocurrent(noiseFreeExcitationTest_same, timeAxis8frames, 'none');
 noiseFreePhotocurrNull_same = computePhotocurrent(noiseFreeExcitationNull_same, timeAxis8frames, 'none');
@@ -119,17 +105,22 @@ noisyPhotocurrTest_same = computePhotocurrent(noisyExcitationTest_same, timeAxis
 noisyPhotocurrNull_same = computePhotocurrent(noisyExcitationNull_same, timeAxis8frames, 'random');
 
 %% Visualization
-visualizeConeResponse(noiseFreeExcitationTest_same, noisyExcitationTest_same, timeAxis8frames, 'excitation');
-% visualizeConeResponse(noiseFreeExcitationNull_same, noisyExcitationNull_same, timeAxis8frames, 'excitation');
-% visualizeSingleConeResponse(noiseFreeExcitationTest_same, noisyExcitationTest_same, timeAxis8frames, 1713, 'excitation');
-% visualizeSingleConeResponse(noiseFreeExcitationNull_same, noisyExcitationNull_same, timeAxis8frames, 1713, 'excitation');
+ExcitationTest.noiseFreeExcitation = noiseFreeExcitationTest_same;
+ExcitationTest.noisyExcitation = noisyExcitationTest_same;
+ExcitationTest.timeAxis = timeAxis8frames;
+ExcitationTest.noiseFreePhotocurr = noiseFreePhotocurrTest_same;
+ExcitationTest.noisyPhotocurr = noisyPhotocurrTest_same;
+% visualizeResponseOverTime(ExcitationTest, 'excitation'); % noiseFreeExcitationTest_same, timeAxis8frames
+
+visualizeAllResponses(ExcitationTest, 'targetCone',1780, 'excitationScale', [0 50], 'photocurrentScale', [0 300]);
+
 % % Visualize Photocurrent
 % visualizeSingleConeResponse(noiseFreePhotocurrTest_same, noisyPhotocurrTest_same, timeAxis8frames, 1713, 'photocurrent');
 % visualizeSingleConeResponse(noiseFreePhotocurrNull_same, noisyPhotocurrNull_same, timeAxis8frames, 1713, 'photocurrent');
 % Try All
-visualizeAllResponse(noiseFreeExcitationTest_same, noisyExcitationTest_same,noiseFreePhotocurrTest_same, noisyPhotocurrTest_same, timeAxis8frames, 1713, 'Test Stimulus');
-
-visualizeAllResponse(noiseFreeExcitationNull_same, noisyExcitationNull_same,noiseFreePhotocurrNull_same, noisyPhotocurrNull_same, timeAxis8frames, 1713, 'Null Stimulus');
+% visualizeAllResponse(noiseFreeExcitationTest_same, noisyExcitationTest_same,noiseFreePhotocurrTest_same, noisyPhotocurrTest_same, timeAxis8frames, 1713, 'Test Stimulus');
+% 
+% visualizeAllResponse(noiseFreeExcitationNull_same, noisyExcitationNull_same,noiseFreePhotocurrNull_same, noisyPhotocurrNull_same, timeAxis8frames, 1713, 'Null Stimulus');
 
 % avgFreeStimulus = mean(noiseFreeExcitationTest_same,"all");
 % avgFreeNull = mean(noiseFreeExcitationNull_same,"all");
@@ -329,42 +320,3 @@ hold off
 % plot(x, box_free, '.r', 'markersize', 20);
 % ylabel('Photocurrent (pAmps)', 'fontsize', 12)
 % hold off
-
-%% Supporting Function
-function [meanNoiseFree, meanNoisy] = visualizeSingleConeResponse(noiseFreeExcitationResponse, noisyExcitationResponse, timeAxis, targetConeID, responseType)
-    figure()
-    % Plot the time series response for individual instances
-    plot(timeAxis, squeeze(noisyExcitationResponse(:,:,targetConeID)), '.', 'color', [.5 .5 .5]);
-    hold on;
-    % Plot the time series response for the mean of the individual instances
-    plot(timeAxis, squeeze(mean(noisyExcitationResponse(:,:,targetConeID),1)), 'g-', 'LineWidth', 3.5);
-    % Plot the noise-free time series response in red
-    plot(timeAxis, squeeze(mean(noiseFreeExcitationResponse(:,:,targetConeID),1)), 'r', 'LineWidth', 2.5);
-    xlabel('time (seconds)');
-    if strcmp(responseType,'excitation')
-        ylabel('excitations per integration time (R*/cone/tau)');
-        ylim([40 180])
-    elseif strcmp(responseType,'photocurrent')
-        ylabel('Photocurrent (pAmps)');
-    end
-    set(gca, 'FontSize', 16);
-    meanNoiseFree = mean(noiseFreeExcitationResponse(:,:,targetConeID));
-    meanNoisy = mean(noisyExcitationResponse(:,:,targetConeID));
-end
-
-function [meanNoiseFree, meanNoisy] = visualizeAllResponse(noiseFreeExcitationResponse, noisyExcitationResponse, noiseFreePhotocurrResponse, noisyPhotocurrResponse, timeAxis, targetConeID, title_str)
-    figure()
-    plot(timeAxis, squeeze(noisyExcitationResponse(:,:,targetConeID)), 'c-', 'DisplayName','');
-    hold on;
-    plot(timeAxis, squeeze(noisyPhotocurrResponse(:,:,targetConeID)), 'm-', 'DisplayName','');
-    plot(timeAxis, squeeze(mean(noisyExcitationResponse(:,:,targetConeID),1)), 'b-', 'LineWidth', 2.5, 'DisplayName','Excitation (R*/cone/tau)');
-    plot(timeAxis, squeeze(mean(noisyPhotocurrResponse(:,:,targetConeID),1)), 'r-', 'LineWidth', 2.5, 'DisplayName','Photocurrent (pAmps)');
-    % plot(timeAxis, squeeze(mean(noiseFreeExcitationResponse(:,:,targetConeID),1)), 'r', 'LineWidth', 1.5);
-    xlabel('time (seconds)');
-    ylabel('Cone Response');
-    ylim([-50 300])
-    set(gca, 'FontSize', 16);
-    title(title_str)
-    meanNoiseFree = mean(noiseFreeExcitationResponse(:,:,targetConeID));
-    meanNoisy = mean(noisyExcitationResponse(:,:,targetConeID));
-end

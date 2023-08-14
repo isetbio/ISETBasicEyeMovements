@@ -1,11 +1,11 @@
 function [meanNoiseFree, meanNoisy, coneID] = visualizeResponseOverTime(responseStruct, responseType, varargin)
     p = inputParser;
-    p.addParameter('targetCone', @(x) (isempty(x) | isnumeric(x)));
-%     p.addParameter('auto', 'true', @(x) (isempty(x) | ischar(x)));
+    p.addParameter('targetCone', '', @(x) (isempty(x) | isnumeric(x)));
+    p.addParameter('scale', '');
     varargin = ieParamFormat(varargin);
     p.parse(varargin{:});
     targetCone = p.Results.targetCone;
-%     auto = p.Results.auto;
+    scale = p.Results.scale;
     
     figure()
     if strcmp(responseType,'excitation')
@@ -32,9 +32,14 @@ function [meanNoiseFree, meanNoisy, coneID] = visualizeResponseOverTime(response
     plot(timeAxis, squeeze(mean(noisyResponses(:,:,targetConeID),1)), 'g-', 'LineWidth', 2.0);
     % Plot the noise-free time series response in red
     plot(timeAxis, squeeze(mean(noiseFreeResponses(:,:,targetConeID),1)), 'r', 'LineWidth', 1.5);
+    title("Cone Index: " + targetConeID);
     xlabel('time (seconds)');
     set(gca, 'FontSize', 16);
+    if ~isempty(scale)
+        ylim(scale)
+    end
+    hold off;
     meanNoiseFree = mean(noiseFreeResponses(:,:,targetConeID));
     meanNoisy = mean(noisyResponses(:,:,targetConeID));
-    coneID = targetConeID
+    coneID = targetConeID;
 end
