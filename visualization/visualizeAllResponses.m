@@ -25,29 +25,38 @@ function [meanEx, meanPhoto] = visualizeAllResponses(responseStruct, varargin)
     
     figure()
     % set(gca, 'FontSize', 10);
-    tiledlayout('flow')
+    t = tiledlayout('flow');
+    t.TileSpacing = 'tight';
+    title(t,"Responses of cone index " + targetConeID,'FontWeight','bold')
+    % xlabel(t,'time (seconds)','FontSize',14)
+    
     nexttile
-    plot(timeAxis, squeeze(noisyResponses_ph(:,:,targetConeID)), 'm-', 'DisplayName','');
+    plot(timeAxis, squeeze(noisyResponses_ex(:,:,targetConeID)), 'c-', 'color', '#7F7FD3');
     hold on;
-    plot(timeAxis, squeeze(mean(noisyResponses_ph(:,:,targetConeID),1)), 'r-', 'LineWidth', 2.5, 'DisplayName','Photocurrent (pAmps)');
+    plot(timeAxis, squeeze(mean(noisyResponses_ex(:,:,targetConeID),1)), 'LineWidth', 2.5, 'DisplayName','Excitation (R*/cone/tau)', 'color', '#0000A7');
+    plot(timeAxis, squeeze(mean(noiseFreeResponses_ex(:,:,targetConeID),1)), 'k-', 'LineWidth', 1.5);
+    ylabel('Excitation (R*/cone/tau)');
+    set(gca,'linewidth',1)
+    set(gca,'FontSize', 12)
+    hold off;
+    if ~isempty(excitationScale)
+        ylim(excitationScale)
+    end
+    % title("Responses of cone index " + targetConeID)
+    
+    nexttile
+    plot(timeAxis, squeeze(noisyResponses_ph(:,:,targetConeID)), 'm-', 'color', '#D37FD3');
+    hold on;
+    plot(timeAxis, squeeze(mean(noisyResponses_ph(:,:,targetConeID),1)), 'r-', 'LineWidth', 2.5, 'color', '#A700A7');
+    % plot(timeAxis, squeeze(mean(noisyResponses_ph(:,:,targetConeID),1)), 'r-', 'LineWidth', 2.5, 'DisplayName','Photocurrent (pAmps)');
     plot(timeAxis, squeeze(mean(noiseFreeResponses_ph(:,:,targetConeID),1)), 'k-', 'LineWidth', 1.5);
     hold off;
     ylabel('Photocurrent (pAmps)');
+    xlabel('time (seconds)','FontSize',15);
+    set(gca,'linewidth',1)
+    set(gca,'FontSize', 12)
     if ~isempty(photocurrentScale)
         ylim(photocurrentScale)
-    end
-    title("Responses of cone index " + targetConeID)
-    
-    nexttile
-    plot(timeAxis, squeeze(noisyResponses_ex(:,:,targetConeID)), 'c-', 'DisplayName','');
-    hold on;
-    plot(timeAxis, squeeze(mean(noisyResponses_ex(:,:,targetConeID),1)), 'b-', 'LineWidth', 2.5, 'DisplayName','Excitation (R*/cone/tau)');
-    plot(timeAxis, squeeze(mean(noiseFreeResponses_ex(:,:,targetConeID),1)), 'k-', 'LineWidth', 1.5);
-    ylabel('Excitation (R*/cone/tau)');
-    hold off;
-    xlabel('time (seconds)');
-    if ~isempty(excitationScale)
-        ylim(excitationScale)
     end
     
     meanEx = mean(noiseFreeResponses_ex(:,:,targetConeID));

@@ -1,16 +1,16 @@
 
-presentationDisplay = displayCreate('LCD-Apple', 'viewing distance', 2);
+presentationDisplay = displayCreate('LCD-Apple', 'viewing distance', 1.5);
 params = struct(...
-    'letterSizesNumExamined', 5, ...                           % How many sizes to use for sampling the psychometric curve
-    'maxLetterSizeDegs', 0.15, ...                               % The maximum letter size in degrees of visual angle
-    'sceneUpSampleFactor', uint8(6), ...                        % Upsample scene, so that the pixel for the smallest scene is < cone aperture
+    'letterSizesNumExamined', 15, ...                           % How many sizes to use for sampling the psychometric curve
+    'maxLetterSizeDegs', 0.5, ...                               % The maximum letter size in degrees of visual angle
+    'sceneUpSampleFactor', uint8(4), ...                        % Upsample scene, so that the pixel for the smallest scene is < cone aperture
     'mosaicIntegrationTimeSeconds', 22/1000, ...                % Integration time, here 300 msec
-    'nTest', 100, ...                                           % Number of trial to use for computing Pcorrect, 512
+    'nTest', 512, ...                                           % Number of trial to use for computing Pcorrect, 512
     'thresholdP', 0.80, ...                                     % Probability correct level for estimating threshold performance
     'chromaSpecification', struct(...
             'type', 'RGBsettings', ...
-            'backgroundRGB', [0.3 0.3 0.3], ...   
-            'foregroundRGB',  [0.1 0.1 0.1]), ...
+            'backgroundRGB', [0.4 0.4 0.4], ...   
+            'foregroundRGB',  [0.2 0.2 0.2]), ...
     'visualizedPSFwavelengths', [], ... % 380:10:770, ...        % Vector with wavelengths for visualizing the PSF. If set to empty[] there is no visualization.
     'visualizeDisplayCharacteristics', ~true, ...               % Flag, indicating whether to visualize the display characteristics
     'visualizeScene', ~true, ...                                 % Flag, indicating whether to visualize one of the scenes
@@ -59,7 +59,7 @@ function theConeMosaic = runSimulation(params, theConeMosaic)
 %     end
     
     if (isempty(theConeMosaic))
-        mosaicSizeDegs = maxLetterSizeDegs*1.25*[1 1]; % 1.25
+        mosaicSizeDegs = maxLetterSizeDegs*1*[1 1]; % 1.25
         theConeMosaic = cMosaic('sizeDegs', mosaicSizeDegs, ...
                 'eccentricityDegs', [0 0], ...
                 'integrationTime', mosaicIntegrationTimeSeconds); 
@@ -113,7 +113,9 @@ function theConeMosaic = runSimulation(params, theConeMosaic)
         'minTrial', nTest*letterSizesNumExamined, ...
         'maxTrial', nTest*letterSizesNumExamined, ...
         'numEstimator', 1, ...
-        'stopCriterion', 0.05);
+        'stopCriterion', 0.05, ...
+        'employMethodOfConstantStimuli', ~true, ...
+        'nTest', 64);
 
     % Generate a customSceneParams struct from the defaultSceneParams
     % so we can set certain scene params of interest
@@ -168,8 +170,8 @@ function theConeMosaic = runSimulation(params, theConeMosaic)
     disp('curve already displayed')
 
 %     pdfFileName = sprintf('Simulation_%s_Reps_%d.pdf', strrep(params.psfDataFile, '.mat', ''), nTest);
-    visualizeSimulationResults(questObj, threshold, fittedPsychometricParams, ...
-        thresholdParameters, tumblingEsceneEngines, theNeuralEngine);
+%     visualizeSimulationResults(questObj, threshold, fittedPsychometricParams, ...
+%         thresholdParameters, tumblingEsceneEngines, theNeuralEngine);
 
     % Export the results
 %     exportFileName = sprintf('Results_%s_Reps_%d.mat', strrep(params.psfDataFile, '.mat', ''), nTest);
