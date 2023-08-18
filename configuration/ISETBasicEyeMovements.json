@@ -6,7 +6,7 @@
 		"localHookTemplate": "configuration/ISETBasicEyeMovementsLocalHookTemplate.m",
 		"name": "ISETBasicEyeMovements",
 		"pathPlacement": "append",
-		"subfolder": ["tutorial", "visualization", "toolbox", "data"],
+		"subfolder": ["tutorial", "visualization", "toolbox", "data", "figure"],
 		"toolboxRoot": "",
 		"type": "git",
 		"update": "",
